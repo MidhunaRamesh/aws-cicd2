@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -22,15 +25,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker Image
-        run: |
-          docker build -t midhuna07/aws-cicd2:${{ github.sha }} .
-          docker tag midhuna07/aws-cicd2:${{ github.sha }} midhuna07/aws-cicd2:latest
-
-      - name: Push Docker Images
-        run: |
-          docker push midhuna07/aws-cicd2:${{ github.sha }}
-          docker push midhuna07/aws-cicd2:latest
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            midhuna07/aws-cicd2:${{ github.sha }}
+            midhuna07/aws-cicd2:latest
 
   deploy:
     needs: build-and-push
@@ -41,10 +43,10 @@ jobs:
         run: |
           sudo docker pull midhuna07/aws-cicd2:latest
 
-      - name: Stop Existing Container
+      - name: Stop and Remove Existing Container
         run: |
-         sudo docker stop aws-cicd-container || true
-         sudo docker rm aws-cicd-container || true
+          sudo docker stop aws-cicd-container || true
+          sudo docker rm aws-cicd-container || true
 
       - name: Run New Container
         run: |
